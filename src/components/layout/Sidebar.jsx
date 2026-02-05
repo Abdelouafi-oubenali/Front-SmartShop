@@ -47,6 +47,8 @@ const SettingsIcon = () => (
   </svg>
 );
 
+import { useNavigate, useLocation } from 'react-router-dom';
+
 const NavItem = ({ icon, label, active, onClick, badge }) => (
   <button
     onClick={onClick}
@@ -70,16 +72,24 @@ const NavItem = ({ icon, label, active, onClick, badge }) => (
   </button>
 );
 
-const Sidebar = ({ activeItem = "dashboard", onNavigate, isMobileOpen = false, onClose }) => {
+const Sidebar = ({ isMobileOpen = false, onClose }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const menuItems = [
-    { id: "dashboard", icon: <DashboardIcon />, label: "Dashboard" },
-    { id: "users", icon: <UsersIcon />, label: "Utilisateurs" },
-    { id: "products", icon: <ProductsIcon />, label: "Produits" },
-    { id: "orders", icon: <OrdersIcon />, label: "Commandes", badge: 5 },
-    { id: "promo", icon: <PromoIcon />, label: "Codes Promo" },
-    { id: "payments", icon: <PaymentsIcon />, label: "Paiements" },
-    { id: "analytics", icon: <AnalyticsIcon />, label: "Analytiques" },
+    { id: "dashboard", icon: <DashboardIcon />, label: "Dashboard", path: "/dashboard" },
+    { id: "users", icon: <UsersIcon />, label: "Utilisateurs", path: "/users" },
+    { id: "products", icon: <ProductsIcon />, label: "Produits", path: "/products" },
+    { id: "orders", icon: <OrdersIcon />, label: "Commandes", badge: 5, path: "/orders" },
+    { id: "promo", icon: <PromoIcon />, label: "Codes Promo", path: "/promo" },
+    { id: "payments", icon: <PaymentsIcon />, label: "Paiements", path: "/payments" },
+    { id: "analytics", icon: <AnalyticsIcon />, label: "Analytiques", path: "/analytics" },
   ];
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    onClose();
+  };
 
   return (
     <>
@@ -109,11 +119,8 @@ const Sidebar = ({ activeItem = "dashboard", onNavigate, isMobileOpen = false, o
               key={item.id}
               icon={item.icon}
               label={item.label}
-              active={activeItem === item.id}
-              onClick={() => {
-                onNavigate(item.id);
-                onClose();
-              }}
+              active={location.pathname === item.path}
+              onClick={() => handleNavigation(item.path)}
               badge={item.badge}
             />
           ))}
@@ -123,11 +130,8 @@ const Sidebar = ({ activeItem = "dashboard", onNavigate, isMobileOpen = false, o
           <NavItem
             icon={<SettingsIcon />}
             label="Paramètres"
-            active={activeItem === "settings"}
-            onClick={() => {
-              onNavigate("settings");
-              onClose();
-            }}
+            active={location.pathname === "/settings"}
+            onClick={() => handleNavigation("/settings")}
           />
         </div>
       </aside>

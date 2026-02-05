@@ -81,7 +81,6 @@ const StatCard = ({ title, value, icon, color, trend, trendValue }) => (
 
 // ============ COMPOSANT DASHBOARD PRINCIPAL ============
 export default function Dashboard() {
-  const [activeSection, setActiveSection] = useState("dashboard");
   const [notifications] = useState(3);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -113,8 +112,6 @@ export default function Dashboard() {
       </button>
 
       <Sidebar
-        activeItem={activeSection}
-        onNavigate={setActiveSection}
         isMobileOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
       />
