@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllUsers, deleteUser } from "../utils/user.api";
+import { getAllUsers, deleteUser, createUser, updateUser } from "../utils/user.api";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import Sidebar from "../components/layout/Sidebar";
@@ -27,6 +27,17 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    email: "", 
+    username: "",
+    password: "",
+    loyaltyLevel: "BASIC",
+    role: "CLIENT" 
+  });
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -59,6 +70,86 @@ export default function Users() {
     }
   };
 
+  const openAddModal = () => {
+    setIsEditMode(false);
+    setFormData({ 
+      name: "", 
+      email: "", 
+      username: "",
+      password: "",
+      loyaltyLevel: "BASIC",
+      role: "CLIENT" 
+    });
+    setEditingId(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user) => {
+    setIsEditMode(true);
+    setFormData({ 
+      name: user.name, 
+      email: user.email,
+      username: user.username || "",
+      password: user.password || "",
+      loyaltyLevel: user.loyaltyLevel || "BASIC",
+      role: user.role || "CLIENT" 
+    });
+    setEditingId(user.id);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormData({ 
+      name: "", 
+      email: "", 
+      username: "",
+      password: "",
+      loyaltyLevel: "BASIC",
+      role: "CLIENT" 
+    });
+    setEditingId(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Format data according to backend API structure
+      const payload = {
+        client: {
+          name: formData.name,
+          email: formData.email,
+          loyaltyLevel: formData.loyaltyLevel,
+          totalOrders: 0,
+          totalSpent: 0
+        },
+        user: {
+          username: formData.username,
+          password: formData.password,
+          role: formData.role
+        }
+      };
+
+      if (isEditMode) {
+        await updateUser(editingId, payload);
+        setUsers(users.map(u => u.id === editingId ? { ...u, ...formData } : u));
+        setError("");
+      } else {
+        const res = await createUser(payload);
+        setUsers([...users, res.data]);
+        setError("");
+      }
+      closeModal();
+    } catch (error) {
+      setError(`Erreur: ${error.response?.data?.message || error.message}`);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Menu burger mobile */}
@@ -86,7 +177,9 @@ export default function Users() {
                 <h2 className="text-3xl font-bold text-white">Utilisateurs</h2>
                 <p className="text-slate-400 mt-2">Gérez vos utilisateurs et leurs permissions</p>
               </div>
-              <button className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
+              <button 
+                onClick={openAddModal}
+                className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all">
                 <AddIcon />
                 <span>Ajouter utilisateur</span>
               </button>
@@ -154,7 +247,9 @@ export default function Users() {
                         </td>
                         <td className="py-4 px-6">
                           <div className="flex items-center space-x-2">
-                            <button className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-700 rounded-lg transition-all">
+                            <button 
+                              onClick={() => openEditModal(user)}
+                              className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-700 rounded-lg transition-all">
                               <EditIcon />
                             </button>
                             <button
@@ -176,6 +271,116 @@ export default function Users() {
 
         <Footer />
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 p-8 w-full max-w-md">
+            <h3 className="text-2xl font-bold text-white mb-6">
+              {isEditMode ? "Modifier l'utilisateur" : "Ajouter un utilisateur"}
+            </h3>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Nom</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleFormChange}
+                  placeholder="Nom complet"
+                  required
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleFormChange}
+                  placeholder="exemple@email.com"
+                  required
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Nom d'utilisateur</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleFormChange}
+                  placeholder="nom d'utilisateur"
+                  required
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Mot de passe</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  placeholder="Mot de passe"
+                  required={!isEditMode}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Niveau de fidélité</label>
+                <select
+                  name="loyaltyLevel"
+                  value={formData.loyaltyLevel}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                >
+                  <option value="BASIC">Basic</option>
+                  <option value="SILVER">Silver</option>
+                  <option value="GOLD">Gold</option>
+                  <option value="PLATINUM">Platinum</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Rôle</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                >
+                  <option value="CLIENT">Client</option>
+                  <option value="ADMIN">Admin</option>
+                  <option value="MODERATOR">Modérateur</option>
+                </select>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-lg hover:shadow-cyan-500/50 transition-all font-medium"
+                >
+                  {isEditMode ? "Mettre à jour" : "Ajouter"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-600 transition-all font-medium"
+                >
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
